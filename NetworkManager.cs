@@ -55,7 +55,7 @@ namespace Starwards
             
             if (state.Spaceship.Count != 0)
             {
-                foreach (var obj in state.Spaceship.items.AsDictionary())
+                foreach (KeyValuePair<string, object> obj in state.Spaceship.items.AsDictionary())
                 {
                     SpaceObjectBase spaceship = (SpaceObjectBase)obj.Value;
                     if (spaceship.destroyed) continue;
