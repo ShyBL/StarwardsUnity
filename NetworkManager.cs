@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Colyseus;
+using Colyseus.Schema;
+using UnityEngine.Serialization;
 
 namespace Starwards
 {
@@ -8,6 +11,10 @@ namespace Starwards
     {
         public GameObject AsteroidPrefab;
         public GameObject SpaceshipPrefab;
+        public GameObject WaypointPrefab;
+        public Dictionary<string, SpaceObjectBase> entities;
+        public Dictionary<string, NetworkedEntity> networkedEntities;
+
         
         private static ColyseusClient _client = null;
         private static ColyseusRoom<SpaceState> _spaceRoom = null;
@@ -16,12 +23,27 @@ namespace Starwards
         public string adminRoomName = "admin";
         public string spaceRoomName = "space";
         public string shipRoomName = "ship";
-        
+
+        public static NetworkManager Instance;
+
+        private void Awake()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+            
+            else
+            {
+                Debug.LogError($"Two {typeof(NetworkManager)} instances exist, didn't create new one");
+            }
+        }
+
         private async void Start()
         {
             Initialize();
             _spaceRoom = await _client.Join<SpaceState>(spaceRoomName);
-            Debug.Log($"connected: {_spaceRoom.Id}");
+            Debug.Log($"connected: {_spaceRoom.RoomId}");
 
             _spaceRoom.OnStateChange += SpaceRoomSetup;
         }
@@ -33,6 +55,22 @@ namespace Starwards
 
         private void SpaceRoomSetup(SpaceState state, bool isFirstState)
         {
+            if (state.Asteroid.Count != 0)
+            {
+                state.Asteroid.ForEach(SpawnAsteroids);
+            }
+            
+            if (state.Spaceship.Count != 0)
+            {
+                state.Spaceship.ForEach(SpawnSpaceship);
+                
+            }
+            
+            if (state.Waypoint.Count != 0)
+            {
+                //state.Waypoint.ForEach(SpawnWaypoints);
+            }
+            
             if (state.Projectile.Count != 0)
             {
                 
@@ -42,17 +80,20 @@ namespace Starwards
             {
                 
             }
+        }
+
+        private void SpawnWaypoints(string s, Waypoint waypoint)
+        {
+            if (waypoint.destroyed) return;
             
-            if (state.Asteroid.Count != 0)
+            if (entities.ContainsKey(waypoint.id))
             {
-                foreach (KeyValuePair<string, object> obj in state.Asteroid.items.AsDictionary())
-                {
-                    SpaceObjectBase asteroid = (SpaceObjectBase)obj.Value;
-                    if (asteroid.destroyed) continue;
-                    Instantiate(AsteroidPrefab, new Vector3(asteroid.position.x, asteroid.position.y),Quaternion.identity);
-                }
+                networkedEntities[waypoint.id].Move();
+                Debug.Log($"Moved {s}");
+
             }
             
+<<<<<<< Updated upstream
             if (state.Spaceship.Count != 0)
             {
                 foreach (KeyValuePair<string, object> obj in state.Spaceship.items.AsDictionary())
@@ -64,9 +105,62 @@ namespace Starwards
             }
             
             if (state.Waypoint.Count != 0)
+=======
+            else if (!entities.ContainsKey(waypoint.id))
+>>>>>>> Stashed changes
             {
+                var parentObject = new GameObject();
+                var Waypoint = parentObject.AddComponent<NetworkedEntity>();
                 
+                Waypoint.Init(waypoint,WaypointPrefab,parentObject);
+                Debug.Log($"Spawned {s}");
+            }
+        }
+        private void SpawnAsteroids(string s, Asteroid asteroid)
+        {
+            if (asteroid.destroyed) return;
+            
+            if (entities.ContainsKey(asteroid.id))
+            {
+                networkedEntities[asteroid.id].Move();
+                Debug.Log($"Moved {s}");
+
+            }
+            
+            else if (!entities.ContainsKey(asteroid.id))
+            {
+                var parentObject = new GameObject();
+                var Asteroid = parentObject.AddComponent<NetworkedEntity>();
+                
+                Asteroid.Init(asteroid,AsteroidPrefab,parentObject);
+                Debug.Log($"Spawned {s}");
+            }
+        }
+
+        private void SpawnSpaceship(string s, Spaceship spaceship)
+        {
+            if (spaceship.destroyed) return;
+            
+            if (entities.ContainsKey(spaceship.id))
+            {
+                networkedEntities[spaceship.id].Move();
+                Debug.Log($"Moved {s}");
+
+            }
+            
+            else if (!entities.ContainsKey(spaceship.id))
+            {
+                var parentObject = new GameObject();
+                var Spaceship = parentObject.AddComponent<NetworkedEntity>();
+                
+                Spaceship.Init(spaceship,WaypointPrefab,parentObject);
+                Debug.Log($"Spawned {s}");
             }
         }
     }
+<<<<<<< Updated upstream
 }
+=======
+    
+}
+>>>>>>> Stashed changes
